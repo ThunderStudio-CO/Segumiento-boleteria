@@ -101,10 +101,10 @@ VITE_SUPABASE_URL=tu-project-url
 VITE_SUPABASE_ANON_KEY=tu-anon-public-key
 
 # Notificaciones por correo (SMTP)
-SMTP_HOST=smtp.larksuite.com
+SMTP_HOST=smtp.tu-proveedor.com
 SMTP_USER=tu-usuario-smtp
 SMTP_PASSWORD=tu-contrasena-smtp
-SMTP_PORT=587
+SMTP_PORT=puerto-smtp
 SMTP_FROM_EMAIL=tu-correo-remitente
 NOTIFY_TO=correo-donde-recibir-los-avisos
 ```
