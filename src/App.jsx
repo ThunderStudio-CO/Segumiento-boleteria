@@ -10,7 +10,7 @@ import {
   RotateCcw,
   CheckCircle2,
 } from "lucide-react";
-import { supabase } from "./supabaseClient";
+import { supabase, isSupabaseConfigured } from "./supabaseClient";
 
 const ROW_ID = "main";
 
@@ -280,8 +280,14 @@ export default function App() {
   const [showAdd, setShowAdd] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [sinConfig, setSinConfig] = useState(false);
 
   useEffect(() => {
+    if (!isSupabaseConfigured) {
+      setSinConfig(true);
+      setLoading(false);
+      return;
+    }
     let channel;
     (async () => {
       try {
@@ -323,6 +329,7 @@ export default function App() {
   }, []);
 
   async function persist(next) {
+    if (!isSupabaseConfigured) return;
     setClientes(next);
     try {
       const { error: upError } = await supabase
@@ -576,6 +583,33 @@ export default function App() {
         )}
 
         <div className="px-4 pt-4">
+          {sinConfig ? (
+            <div
+              style={{
+                backgroundColor: colors.paperCard,
+                border: `1px dashed ${colors.stampRed}`,
+                color: colors.ink,
+                fontFamily: fontSans,
+              }}
+              className="text-center py-8 px-6 rounded-lg text-sm"
+            >
+              <div style={{ fontWeight: 700, color: colors.stampRed, fontSize: 14, marginBottom: 6 }}>
+                Faltan las credenciales de Supabase
+              </div>
+              <div style={{ color: colors.inkMuted }}>
+                En Vercel entra a tu proyecto → <b>Settings → Environment Variables</b> y agrega:
+              </div>
+              <div style={{ fontFamily: fontMono, fontSize: 12, color: colors.ink, marginTop: 8 }}>
+                VITE_SUPABASE_URL
+                <br />
+                VITE_SUPABASE_ANON_KEY
+              </div>
+              <div style={{ color: colors.inkMuted, marginTop: 8 }}>
+                Copia los valores de tu archivo .env, luego ve a <b>Deployments</b> → Redeploy.
+              </div>
+            </div>
+          ) : (
+            <>
           <div
             style={{ backgroundColor: colors.paperCard, border: `1px solid ${colors.rule}` }}
             className="flex items-center gap-2 rounded-lg px-3 py-2 mb-3"
@@ -620,8 +654,11 @@ export default function App() {
               </button>
             ))}
           </div>
+            </>
+          )}
         </div>
 
+        {!sinConfig && (
         <div className="px-4">
           {loading ? (
             <div style={{ color: colors.inkMuted, fontFamily: fontSans }} className="text-center py-10 text-sm">
@@ -688,6 +725,7 @@ export default function App() {
             </div>
           )}
         </div>
+        )}
 
         {clientes.length > 0 && (
           <div className="px-4 pt-6 pb-2 text-center">
