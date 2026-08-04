@@ -218,6 +218,19 @@ function getEstado(c) {
   return "al_dia";
 }
 
+async function notificar(tipo, data) {
+  if (import.meta.env.DEV) return;
+  try {
+    await fetch("/api/notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ type: tipo, ...data }),
+    });
+  } catch (e) {
+    console.warn("No se pudo enviar la notificación por correo:", e);
+  }
+}
+
 const ESTADO_ORDEN = { vencido: 0, proximo: 1, al_dia: 2, pagado: 3 };
 
 const ESTADO_LABEL = {
@@ -370,6 +383,12 @@ export default function App() {
           : [],
     };
     persist([nuevo, ...clientes]);
+    notificar("venta", {
+      clienteId: nuevo.id,
+      clienteNombre: nuevo.nombre,
+      boletos: nuevo.boletos,
+      totalPagar: cuotas.reduce((a, cu) => a + cu.total, 0),
+    });
     setShowAdd(false);
   }
 
@@ -395,6 +414,7 @@ export default function App() {
       return updated;
     });
     persist(next);
+    notificar("abono", { clienteId, monto: Number(monto), fecha });
   }
 
   function updateFechaCobro(clienteId, nuevaFecha) {
