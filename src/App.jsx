@@ -219,15 +219,18 @@ function getEstado(c) {
 }
 
 async function notificar(tipo, data) {
-  if (import.meta.env.DEV) return;
+  if (import.meta.env.DEV) return true;
   try {
-    await fetch("/api/notify", {
+    const res = await fetch("/api/notify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: tipo, ...data }),
     });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return true;
   } catch (e) {
     console.warn("No se pudo enviar la notificación por correo:", e);
+    return false;
   }
 }
 
@@ -294,6 +297,7 @@ export default function App() {
   const [confirmDeleteId, setConfirmDeleteId] = useState(null);
   const [confirmReset, setConfirmReset] = useState(false);
   const [sinConfig, setSinConfig] = useState(false);
+  const [notifyError, setNotifyError] = useState(false);
 
   useEffect(() => {
     if (!isSupabaseConfigured) {
@@ -356,7 +360,7 @@ export default function App() {
     }
   }
 
-  function addVenta(data) {
+  async function addVenta(data) {
     const cadencia = CADENCIA[data.periodicidad] || CADENCIA.semanal;
     const cuotas = generarCuotas(
       Number(data.boletos),
@@ -383,16 +387,17 @@ export default function App() {
           : [],
     };
     persist([nuevo, ...clientes]);
-    notificar("venta", {
+    const ok = await notificar("venta", {
       clienteId: nuevo.id,
       clienteNombre: nuevo.nombre,
       boletos: nuevo.boletos,
       totalPagar: cuotas.reduce((a, cu) => a + cu.total, 0),
     });
+    setNotifyError(!ok);
     setShowAdd(false);
   }
 
-  function addAbono(clienteId, monto, fecha, nuevaFechaCobro) {
+  async function addAbono(clienteId, monto, fecha, nuevaFechaCobro) {
     const next = clientes.map((c) => {
       if (c.id !== clienteId) return c;
       const abono = { id: Date.now().toString(36), fecha, monto: Number(monto) };
@@ -414,7 +419,8 @@ export default function App() {
       return updated;
     });
     persist(next);
-    notificar("abono", { clienteId, monto: Number(monto), fecha });
+    const ok = await notificar("abono", { clienteId, monto: Number(monto), fecha });
+    setNotifyError(!ok);
   }
 
   function updateFechaCobro(clienteId, nuevaFecha) {
@@ -775,6 +781,22 @@ export default function App() {
         {error && (
           <div style={{ fontFamily: fontSans, fontSize: 12, color: colors.stampRed }} className="text-center px-4 pt-2">
             No se pudo conectar con la base de datos. Revisa las variables de entorno de Supabase.
+          </div>
+        )}
+
+        {notifyError && (
+          <div
+            style={{
+              fontFamily: fontSans,
+              fontSize: 12,
+              color: colors.stampAmber,
+              backgroundColor: "#F3E4D8",
+              border: `1px solid ${colors.stampAmber}`,
+            }}
+            className="text-center mx-4 mt-3 px-3 py-2 rounded"
+          >
+            El correo de notificación no se pudo enviar. Revisa que las variables SMTP estén
+            configuradas en Vercel (Settings → Environment Variables).
           </div>
         )}
       </div>
